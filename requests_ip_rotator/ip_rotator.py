@@ -65,10 +65,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         # If API gateway already exists for host, return pre-existing endpoint
         if not force:
             try:
-                current_apis = awsclient.get_rest_apis(
-                    aws_access_key_id=self.access_key_id,
-                    aws_secret_access_key=self.access_key_secret
-                )["items"]
+                current_apis = awsclient.get_rest_apis()["items"]
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "UnrecognizedClientException":
                     print(f"Could not create region (some regions require manual enabling): {region}")
@@ -197,10 +194,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                                    )
         # Get all gateway apis (or skip if we don't have permission)
         try:
-            apis = awsclient.get_rest_apis(
-                aws_access_key_id=self.access_key_id,
-                aws_secret_access_key=self.access_key_secret
-            )["items"]
+            apis = awsclient.get_rest_apis()["items"]
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "UnrecognizedClientException":
                 return 0
