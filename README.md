@@ -74,6 +74,7 @@ This does not require any parameters, but accepts the following:
 | Name              | Description                                                   | Required    |
 | -----------       | -----------                                                   | ----------- |
 | force             | Create a new set of endpoints, even if some already exist.    | False       |
+| endpoints         | Array of pre-existing endpoints (i.e. from previous session). | False       |
 ```python
 # Starts new ApiGateway instances for site, or locates existing endpoints if they already exist.
 gateway_1.start()

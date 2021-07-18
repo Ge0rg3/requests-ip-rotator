@@ -221,9 +221,14 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             api_iter += 1
         return deleted
 
-    def start(self, force=False):
-        print(
-            f"Starting API gateway{'s' if len(self.regions) > 1 else ''} in {len(self.regions)} regions.")
+    def start(self, force=False, endpoints=[]):
+        # If endpoints given already, assign and continue
+        if len(endpoints) > 0:
+            self.endpoints = endpoints
+            return endpoints
+
+        # Otherwise, start/locate new endpoints
+        print(f"Starting API gateway{'s' if len(self.regions) > 1 else ''} in {len(self.regions)} regions.")
         self.endpoints = []
         new_endpoints = 0
 
