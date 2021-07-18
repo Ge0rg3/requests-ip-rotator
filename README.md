@@ -14,7 +14,7 @@ This package is on pypi so you can install via any of the following:
 ## Simple Usage
 ```py
 import requests
-from ip_rotate import ApiGateway
+from requests_ip_rotator import ApiGateway
 
 # Create gateway object and initialise in AWS
 gateway = ApiGateway("https://site.com")
