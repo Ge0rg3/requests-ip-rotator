@@ -27,7 +27,7 @@ ALL_REGIONS = EXTRA_REGIONS + [
 # Inherits from HTTPAdapter so that we can edit each request before sending
 class ApiGateway(rq.adapters.HTTPAdapter):
 
-    def __init__(self, site, regions=DEFAULT_REGIONS, force=False, access_key_id=None, access_key_secret=None):
+    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None):
         super().__init__()
         # Set simple params from constructor
         if site.endswith("/"):
@@ -38,8 +38,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         self.access_key_secret = access_key_secret
         self.api_name = site + " - IP Rotate API"
         self.regions = regions
-        # Create endpoints for given site (or retrieve existing)
-        self.start(force)
 
     def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
         # Get random endpoint
