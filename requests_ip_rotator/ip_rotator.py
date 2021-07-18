@@ -44,7 +44,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         endpoint = choice(self.endpoints)
         # Replace URL with our endpoint
         protocol, site = request.url.split("://", 1)
-        site_path = site.split("/")[1]
+        site_path = site.split("/", 1)[1]
         request.url = "https://" + endpoint + "/ProxyStage/" + site_path
         # Replace host with endpoint host
         request.headers["Host"] = endpoint
