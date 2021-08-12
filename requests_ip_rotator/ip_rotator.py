@@ -4,6 +4,7 @@ import requests as rq
 import concurrent.futures
 from random import choice
 from time import sleep
+from urllib.parse import parse_qs, urlparse
 
 # Region lists that can be imported and used in the ApiGateway class
 DEFAULT_REGIONS = [
@@ -39,17 +40,39 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         self.api_name = site + " - IP Rotate API"
         self.regions = regions
 
-    def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
+    def modify_request_dict(self, request):
         # Get random endpoint
         endpoint = choice(self.endpoints)
         # Replace URL with our endpoint
-        protocol, site = request.url.split("://", 1)
-        site_path = site.split("/", 1)[1]
-        request.url = "https://" + endpoint + "/ProxyStage/" + site_path
+        parsed_url = urlparse(request['url'])
+        params_in_url = parse_qs(parsed_url.query)
+        if params_in_url:
+            if 'params' in request:
+                # params in request take priority over querystring
+                request['params'] = params_in_url.update(request['params'])
+            else:
+                request['params'] = params_in_url
+
+        site_path = parsed_url.path
+        request['url'] = "https://" + endpoint + "/ProxyStage/" + site_path
         # Replace host with endpoint host
-        request.headers["Host"] = endpoint
-        # Run original python requests send function
-        return super().send(request, stream, timeout, verify, cert, proxies)
+        request['headers']["Host"] = endpoint
+        return request
+
+    def modify_request_obj(self, request):
+        request_dict = {
+            'url': request.url,
+            'params': request.params,    
+            'headers': request.headers,
+        }
+        modified_request_dict = self.request_dict(request_dict)
+        request.url = modified_request_dict['url']
+        request.params = modified_request_dict['params']
+        request.headers = modified_request_dict['params']
+        return request
+
+    def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
+        return super().send(self.modify_request_obj(request), stream, timeout, verify, cert, proxies)
 
     def init_gateway(self, region, force=False):
         # Init client
@@ -161,20 +184,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             restApiId=rest_api_id,
             stageName="ProxyStage"
         )
-
-        # Create simple usage plan
-        # TODO: Cleanup usage plans on delete
-        awsclient.create_usage_plan(
-            name="burpusage",
-            description=rest_api_id,
-            apiStages=[
-                {
-                    "apiId": rest_api_id,
-                    "stage": "ProxyStage"
-                }
-            ]
-        )
-
+       
         # Return endpoint name and whether it show it is newly created
         return {
             "success": True,
