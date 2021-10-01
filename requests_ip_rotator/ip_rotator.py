@@ -162,19 +162,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             stageName="ProxyStage"
         )
 
-        # Create simple usage plan
-        # TODO: Cleanup usage plans on delete
-        awsclient.create_usage_plan(
-            name="burpusage",
-            description=rest_api_id,
-            apiStages=[
-                {
-                    "apiId": rest_api_id,
-                    "stage": "ProxyStage"
-                }
-            ]
-        )
-
         # Return endpoint name and whether it show it is newly created
         return {
             "success": True,
