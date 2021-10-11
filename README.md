@@ -5,6 +5,8 @@ This library will allow the user to bypass IP-based rate-limits for sites and se
 
 X-Forwarded-For headers are automatically randomised and applied unless given. This is because otherwise, AWS will send the client's true IP address in this header.
 
+AWS' ApiGateway sends its requests from any available IP - and since the AWS infrastructure is so large, it is almost guarenteed to be different each time. By using ApiGateway as a proxy, we can take advantage of this to send requests from different IPs each time. Please note that these requests can be easily identified and blocked, since they are sent with unique AWS headers (i.e. "X-Amzn-Trace-Id").
+
 ---
 ## Installation
 This package is on pypi so you can install via any of the following:  
@@ -34,7 +36,20 @@ print(response.status_code)
 gateway.shutdown()
 ```
 
-Please remember that if gateways are not shutdown via the `shutdown()` method, you may be charged in future.
+### Alternate Usage (auto-start and shutdown)
+```py
+import requests
+from requests_ip_rotator import ApiGateway
+
+with ApiGateway("https://site.com") as g:
+    session = requests.Session()
+    session.mount("https://site.com", g)
+
+    response = session.get("https://site.com/index.html")
+    print(response.status_code)
+```
+
+Please remember that if gateways are not shutdown via the `shutdown()` method when using method #1, you may be charged in future.
 
 &nbsp;
 ## Costs
