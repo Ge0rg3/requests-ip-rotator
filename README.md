@@ -3,6 +3,8 @@ A Python library to utilize AWS API Gateway's large IP pool as a proxy to genera
 
 This library will allow the user to bypass IP-based rate-limits for sites and services.
 
+X-Forwarded-For headers are automatically randomised and applied unless given. This is because otherwise, AWS will send the client's true IP address in this header.
+
 ---
 ## Installation
 This package is on pypi so you can install via any of the following:  
@@ -88,7 +90,6 @@ gateway_2.start(force=True)
 Requests are sent by attaching the ApiGateway object to a requests Session object.  
 The site given in `mount` must match the site passed in the `ApiGateway` constructor.  
 
-If you pass in a `X-My-X-Forwarded-For` header, this will get sent as `X-Forwarded-For` in the outbound request.
 ```python
 import requests
 
@@ -97,8 +98,8 @@ session_1 = requests.Session()
 session_1.mount("http://1.1.1.1:8080", gateway_1)
 session_1.post("http://1.1.1.1:8080/update.php", headers={"Hello": "World"})
 
-# Send 127.0.0.1 as X-Forwarded-For header in outbound request.
-session_1.post("http://1.1.1.1:8080/update.php", headers={"X-My-X-Forwarded-For", "127.0.0.1"})
+# Send 127.0.0.1 as X-Forwarded-For header in outbound request (otherwise X-Forwarded-For is randomised).
+session_1.post("http://1.1.1.1:8080/update.php", headers={"X-Forwarded-For", "127.0.0.1"})
 
 # Execute Google search query from random IP
 session_2 = requests.Session()
