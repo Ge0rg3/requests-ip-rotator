@@ -42,6 +42,14 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         self.api_name = site + " - IP Rotate API"
         self.regions = regions
 
+    # Enter and exit blocks to allow "with" clause
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.shutdown()
+
     def send(self, request, stream=False, timeout=None, verify=True, cert=None, proxies=None):
         # Get random endpoint
         endpoint = choice(self.endpoints)
