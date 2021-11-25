@@ -55,8 +55,12 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         endpoint = choice(self.endpoints)
         # Replace URL with our endpoint
         protocol, site = request.url.split("://", 1)
+        print('site ' + str(site))
         site_path = site.split("/", 1)[1]
-        request.url = "https://" + endpoint + "/ProxyStage/" + site_path
+        print('site_path ' + site_path)
+        #Set new request url
+        request.url = "https://" + endpoint + "/" + site_path
+        print('request.url ' + request.url)
         # Replace host with endpoint host
         request.headers["Host"] = endpoint
         # Auto generate random X-Forwarded-For if doesn't exist.
@@ -69,13 +73,14 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         request.headers.pop("X-Forwarded-For", None)
         request.headers["X-My-X-Forwarded-For"] = x_forwarded_for
         # Run original python requests send function
+        print('sending now')
         return super().send(request, stream, timeout, verify, cert, proxies)
 
     def init_gateway(self, region, force=False):
         # Init client
         session = boto3.session.Session()
         awsclient = session.client(
-            "apigateway",
+            "apigatewayv2",
             region_name=region,
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.access_key_secret
@@ -83,7 +88,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         # If API gateway already exists for host, return pre-existing endpoint
         if not force:
             try:
-                current_apis = awsclient.get_rest_apis()["items"]
+                current_apis = awsclient.get_apis()["Items"]
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "UnrecognizedClientException":
                     print(f"Could not create region (some regions require manual enabling): {region}")
@@ -94,112 +99,75 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                     raise e
 
             for api in current_apis:
-                if self.api_name == api["name"]:
+                if self.api_name == api["Name"]:
                     return {
                         "success": True,
-                        "endpoint": f"{api['id']}.execute-api.{region}.amazonaws.com",
+                        "endpoint": f"{api['ApiId']}.execute-api.{region}.amazonaws.com",
                         "new": False
                     }
 
-        # Create simple rest API resource
-        create_api_response = awsclient.create_rest_api(
-            name=self.api_name,
-            endpointConfiguration={
-                "types": [
-                    "REGIONAL",
-                ]
-            }
+        # Create simple HTTP API resource
+        create_api_response = awsclient.create_api(
+            ProtocolType='HTTP',
+            Name=self.api_name
         )
+
+        http_api_id = create_api_response["ApiId"]
 
         # Get ID for new resource
-        get_resource_response = awsclient.get_resources(
-            restApiId=create_api_response["id"]
+        get_api_response = awsclient.get_api(
+            ApiId=http_api_id
         )
-        rest_api_id = create_api_response["id"]
-
-        # Create "Resource" (wildcard proxy path)
-        create_resource_response = awsclient.create_resource(
-            restApiId=create_api_response["id"],
-            parentId=get_resource_response["items"][0]["id"],
-            pathPart="{proxy+}"
-        )
-
-        # Allow all methods to new resource
-        awsclient.put_method(
-            restApiId=create_api_response["id"],
-            resourceId=get_resource_response["items"][0]["id"],
-            httpMethod="ANY",
-            authorizationType="NONE",
-            requestParameters={
-                "method.request.path.proxy": True,
-                "method.request.header.X-My-X-Forwarded-For": True
-            }
+        print('testing: ' + self.site + '/{proxy}')
+        # Create "integration"
+        create_integration_response = awsclient.create_integration(
+            ApiId=http_api_id,
+            IntegrationType='HTTP_PROXY',
+            IntegrationMethod='ANY',
+            IntegrationUri=self.site + '/{proxy}',
+            PayloadFormatVersion='1.0'
         )
 
-        # Make new resource route traffic to new host
-        awsclient.put_integration(
-            restApiId=create_api_response["id"],
-            resourceId=get_resource_response["items"][0]["id"],
-            type="HTTP_PROXY",
-            httpMethod="ANY",
-            integrationHttpMethod="ANY",
-            uri=self.site,
-            connectionType="INTERNET",
-            requestParameters={
-                "integration.request.path.proxy": "method.request.path.proxy",
-                "integration.request.header.X-Forwarded-For": "method.request.header.X-My-X-Forwarded-For"
-            }
+        # Create "route" (wildcard proxy path)
+        create_resource_response = awsclient.create_route(
+            ApiId=http_api_id,
+            RouteKey='ANY /{proxy+}',
+            Target='integrations/' + create_integration_response['IntegrationId']
         )
 
-        awsclient.put_method(
-            restApiId=create_api_response["id"],
-            resourceId=create_resource_response["id"],
-            httpMethod="ANY",
-            authorizationType="NONE",
-            requestParameters={
-                "method.request.path.proxy": True,
-                "method.request.header.X-My-X-Forwarded-For": True
-            }
-        )
-
-        awsclient.put_integration(
-            restApiId=create_api_response["id"],
-            resourceId=create_resource_response["id"],
-            type="HTTP_PROXY",
-            httpMethod="ANY",
-            integrationHttpMethod="ANY",
-            uri=f"{self.site}/{{proxy}}",
-            connectionType="INTERNET",
-            requestParameters={
-                "integration.request.path.proxy": "method.request.path.proxy",
-                "integration.request.header.X-Forwarded-For": "method.request.header.X-My-X-Forwarded-For"
-            }
+        # Create "stage"
+        create_stage_response = awsclient.create_stage(
+            ApiId=http_api_id,
+            AutoDeploy=True,
+            Description='Default Stage',
+            StageName='$default'
         )
 
         # Creates deployment resource, so that our API to be callable
-        awsclient.create_deployment(
+        """ awsclient.create_deployment(
             restApiId=rest_api_id,
             stageName="ProxyStage"
-        )
+        ) """
 
         # Return endpoint name and whether it show it is newly created
         return {
             "success": True,
-            "endpoint": f"{rest_api_id}.execute-api.{region}.amazonaws.com",
+            "endpoint": f"{http_api_id}.execute-api.{region}.amazonaws.com",
             "new": True
         }
 
     def delete_gateway(self, region):
         # Create client
         session = boto3.session.Session()
-        awsclient = session.client('apigateway',
-                                   region_name=region,
-                                   aws_access_key_id=self.access_key_id,
-                                   aws_secret_access_key=self.access_key_secret
-                                   )
+        awsclient = session.client(
+            "apigatewayv2",
+            region_name=region,
+            aws_access_key_id=self.access_key_id,
+            aws_secret_access_key=self.access_key_secret
+        )
         # Get all gateway apis (or skip if we don't have permission)
         try:
-            apis = awsclient.get_rest_apis()["items"]
+            apis = awsclient.get_apis()["Items"]
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "UnrecognizedClientException":
                 return 0
@@ -209,14 +177,14 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         while api_iter < len(apis):
             api = apis[api_iter]
             # Check if hostname matches
-            if self.api_name == api["name"]:
+            if self.api_name == api["Name"]:
                 # Attempt delete
                 try:
-                    success = awsclient.delete_rest_api(restApiId=api["id"])
+                    success = awsclient.delete_api(ApiId=api["ApiId"])
                     if success:
                         deleted += 1
                     else:
-                        print(f"Failed to delete API {api['id']}.")
+                        print(f"Failed to delete API {api['ApiId']}.")
                 except botocore.exceptions.ClientError as e:
                     # If timeout, retry
                     err_code = e.response["Error"]["Code"]
@@ -224,7 +192,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                         sleep(1)
                         continue
                     else:
-                        print(f"Failed to delete API {api['id']}.")
+                        print(f"Failed to delete API {api['ApiId']}.")
             api_iter += 1
         return deleted
 
