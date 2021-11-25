@@ -55,12 +55,9 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         endpoint = choice(self.endpoints)
         # Replace URL with our endpoint
         protocol, site = request.url.split("://", 1)
-        print('site ' + str(site))
         site_path = site.split("/", 1)[1]
-        print('site_path ' + site_path)
         #Set new request url
         request.url = "https://" + endpoint + "/" + site_path
-        print('request.url ' + request.url)
         # Replace host with endpoint host
         request.headers["Host"] = endpoint
         # Auto generate random X-Forwarded-For if doesn't exist.
@@ -73,7 +70,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         request.headers.pop("X-Forwarded-For", None)
         request.headers["X-My-X-Forwarded-For"] = x_forwarded_for
         # Run original python requests send function
-        print('sending now')
         return super().send(request, stream, timeout, verify, cert, proxies)
 
     def init_gateway(self, region, force=False):
@@ -91,7 +87,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                 current_apis = awsclient.get_apis()["Items"]
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "UnrecognizedClientException":
-                    print(f"Could not create region (some regions require manual enabling): {region}")
                     return {
                         "success": False
                     }
@@ -118,7 +113,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         get_api_response = awsclient.get_api(
             ApiId=http_api_id
         )
-        print('testing: ' + self.site + '/{proxy}')
         # Create "integration"
         create_integration_response = awsclient.create_integration(
             ApiId=http_api_id,
