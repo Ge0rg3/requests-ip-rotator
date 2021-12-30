@@ -135,6 +135,14 @@ gateway_1.shutdown()
 gateway_2.shutdown()
 ```
 
+Alternatively, you can selectively shutdown specific endpoints, if needed. To do this, simply pass in an array of endpoints to the shutdown() method, i.e:
+```python
+# This will force start a new gateway (i.e. create new endpoints even if some exist on the region already), and then delete the first 3 of them only.
+gateway_3 = ApiGateway("http://1.1.1.1:8082", regions=ALL_REGIONS)
+endpoints = gateway_3.start(force=True)
+gateway_3.shutdown(endpoints[:3])
+```
+
 ## Credit
 The core gateway creation and organisation code was adapter from RhinoSecurityLabs' [IPRotate Burp Extension](https://github.com/RhinoSecurityLabs/IPRotate_Burp_Extension/).  
 The X-My-X-Forwarded-For header forwarding concept was originally conceptualised by [ustayready](https://twitter.com/ustayready) in his [fireprox](https://github.com/ustayready/fireprox) proxy.

@@ -189,7 +189,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             "new": True
         }
 
-    def delete_gateway(self, region):
+    def delete_gateway(self, region, endpoints=None):
         # Create client
         session = boto3.session.Session()
         awsclient = session.client('apigateway',
@@ -197,6 +197,11 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                                    aws_access_key_id=self.access_key_id,
                                    aws_secret_access_key=self.access_key_secret
                                    )
+        # Extract endpoint IDs from given endpoints
+        endpoint_ids = []
+        if endpoints is not None:
+            for endpoint in endpoints:
+                endpoint_ids.append(endpoint.split(".")[0])
         # Get all gateway apis (or skip if we don't have permission)
         try:
             apis = awsclient.get_rest_apis()["items"]
@@ -205,16 +210,20 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                 return 0
         # Delete APIs matching target name
         api_iter = 0
-        deleted = 0
+        deleted = []
         while api_iter < len(apis):
             api = apis[api_iter]
             # Check if hostname matches
             if self.api_name == api["name"]:
                 # Attempt delete
                 try:
+                    # If endpoints list is given, only delete if within list
+                    if endpoints is not None and api["id"] not in endpoint_ids:
+                        api_iter += 1
+                        continue
                     success = awsclient.delete_rest_api(restApiId=api["id"])
                     if success:
-                        deleted += 1
+                        deleted.append(api["id"])
                     else:
                         print(f"Failed to delete API {api['id']}.")
                 except botocore.exceptions.ClientError as e:
@@ -256,17 +265,17 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         print(f"Using {len(self.endpoints)} endpoints with name '{self.api_name}' ({new_endpoints} new).")
         return self.endpoints
 
-    def shutdown(self):
+    def shutdown(self, endpoints=None):
         print(f"Deleting gateway{'s' if len(self.regions) > 1 else ''} for site '{self.site}'.")
         futures = []
-
         # Setup multithreading object
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             # Send each region deletion to its own thread
             for region in self.regions:
-                futures.append(executor.submit(self.delete_gateway, region=region))
+                futures.append(executor.submit(self.delete_gateway, region=region, endpoints=endpoints))
             # Check outputs
-            deleted = 0
+            deleted = []
             for future in concurrent.futures.as_completed(futures):
                 deleted += future.result()
-        print(f"Deleted {deleted} endpoints with for site '{self.site}'.")
+        print(f"Deleted {len(deleted)} endpoints with for site '{self.site}'.")
+        return deleted
