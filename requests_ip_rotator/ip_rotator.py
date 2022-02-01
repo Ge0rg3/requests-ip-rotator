@@ -30,8 +30,8 @@ ALL_REGIONS = EXTRA_REGIONS + [
 # Inherits from HTTPAdapter so that we can edit each request before sending
 class ApiGateway(rq.adapters.HTTPAdapter):
 
-    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None):
-        super().__init__()
+    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, **kwargs):
+        super().__init__(**kwargs)
         # Set simple params from constructor
         if site.endswith("/"):
             self.site = site[:-1]
