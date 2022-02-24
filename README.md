@@ -55,6 +55,7 @@ Please remember that if gateways are not shutdown via the `shutdown()` method wh
 ## Costs
 API Gateway is free for the first million requests per region, which means that for most use cases this should be completely free.  
 At the time of writing, AWS charges ~$3 per million requests after the free tier has been exceeded.  
+If your requests involve data stream, AWS would charge data transfer fee at $0.09 per GB.
 &nbsp;
 
 ## Documentation
