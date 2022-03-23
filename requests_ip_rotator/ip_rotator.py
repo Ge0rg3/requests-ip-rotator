@@ -83,7 +83,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         # If API gateway already exists for host, return pre-existing endpoint
         if not force:
             try:
-                current_apis = awsclient.get_rest_apis()["items"]
+                current_apis = ApiGateway.get_gateways(awsclient)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "UnrecognizedClientException":
                     print(f"Could not create region (some regions require manual enabling): {region}")
@@ -189,6 +189,30 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             "new": True
         }
 
+    @staticmethod
+    def get_gateways(client):
+        gateways = []
+        position = None
+        complete = False
+        while not complete:
+            if isinstance(position, str):
+                gateways_response = client.get_rest_apis(
+                    limit=500,
+                    position=position
+                )
+            else:
+                gateways_response = client.get_rest_apis(
+                    limit=500
+                )
+
+            gateways.extend(gateways_response['items'])
+
+            position = gateways_response.get('position', None)
+            if position is None:
+                complete = True
+
+        return gateways
+
     def delete_gateway(self, region, endpoints=None):
         # Create client
         session = boto3.session.Session()
@@ -204,7 +228,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                 endpoint_ids.append(endpoint.split(".")[0])
         # Get all gateway apis (or skip if we don't have permission)
         try:
-            apis = awsclient.get_rest_apis()["items"]
+            apis = ApiGateway.get_gateways(awsclient)
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "UnrecognizedClientException":
                 return 0
