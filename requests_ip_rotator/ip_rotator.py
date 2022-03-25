@@ -94,7 +94,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                     raise e
 
             for api in current_apis:
-                if self.api_name == api["name"]:
+                if "name" in api and self.api_name == api["name"]:
                     return {
                         "success": True,
                         "endpoint": f"{api['id']}.execute-api.{region}.amazonaws.com",
@@ -238,7 +238,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         while api_iter < len(apis):
             api = apis[api_iter]
             # Check if hostname matches
-            if self.api_name == api["name"]:
+            if "name" in api and self.api_name == api["name"]:
                 # Attempt delete
                 try:
                     # If endpoints list is given, only delete if within list
