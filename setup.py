@@ -9,7 +9,7 @@ README = (location / "README.md").read_text()
 # This call to setup() does all the work
 setup(
     name="requests-ip-rotator",
-    version="1.0.11",
+    version="1.0.12",
     description="Rotate through IPs in Python using AWS API Gateway.",
     long_description=README,
     long_description_content_type="text/markdown",
