@@ -30,7 +30,7 @@ ALL_REGIONS = EXTRA_REGIONS + [
 # Inherits from HTTPAdapter so that we can edit each request before sending
 class ApiGateway(rq.adapters.HTTPAdapter):
 
-    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, **kwargs):
+    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, verbose=True, **kwargs):
         super().__init__(**kwargs)
         # Set simple params from constructor
         if site.endswith("/"):
@@ -41,6 +41,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         self.access_key_secret = access_key_secret
         self.api_name = site + " - IP Rotate API"
         self.regions = regions
+        self.verbose = verbose
 
     # Enter and exit blocks to allow "with" clause
     def __enter__(self):
@@ -86,7 +87,8 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                 current_apis = ApiGateway.get_gateways(awsclient)
             except botocore.exceptions.ClientError as e:
                 if e.response["Error"]["Code"] == "UnrecognizedClientException":
-                    print(f"Could not create region (some regions require manual enabling): {region}")
+                    if self.verbose:
+                        print(f"Could not create region (some regions require manual enabling): {region}")
                     return {
                         "success": False
                     }
@@ -249,7 +251,8 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                     if success:
                         deleted.append(api["id"])
                     else:
-                        print(f"Failed to delete API {api['id']}.")
+                        if self.verbose:
+                            print(f"Failed to delete API {api['id']}.")
                 except botocore.exceptions.ClientError as e:
                     # If timeout, retry
                     err_code = e.response["Error"]["Code"]
@@ -257,7 +260,8 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                         sleep(1)
                         continue
                     else:
-                        print(f"Failed to delete API {api['id']}.")
+                        if self.verbose:
+                            print(f"Failed to delete API {api['id']}.")
             api_iter += 1
         return deleted
 
@@ -268,7 +272,8 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             return endpoints
 
         # Otherwise, start/locate new endpoints
-        print(f"Starting API gateway{'s' if len(self.regions) > 1 else ''} in {len(self.regions)} regions.")
+        if self.verbose:
+            print(f"Starting API gateway{'s' if len(self.regions) > 1 else ''} in {len(self.regions)} regions.")
         self.endpoints = []
         new_endpoints = 0
 
@@ -286,11 +291,13 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                     if result["new"]:
                         new_endpoints += 1
 
-        print(f"Using {len(self.endpoints)} endpoints with name '{self.api_name}' ({new_endpoints} new).")
+        if self.verbose:
+            print(f"Using {len(self.endpoints)} endpoints with name '{self.api_name}' ({new_endpoints} new).")
         return self.endpoints
 
     def shutdown(self, endpoints=None):
-        print(f"Deleting gateway{'s' if len(self.regions) > 1 else ''} for site '{self.site}'.")
+        if self.verbose:
+            print(f"Deleting gateway{'s' if len(self.regions) > 1 else ''} for site '{self.site}'.")
         futures = []
         # Setup multithreading object
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -301,5 +308,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             deleted = []
             for future in concurrent.futures.as_completed(futures):
                 deleted += future.result()
-        print(f"Deleted {len(deleted)} endpoints with for site '{self.site}'.")
+        if self.verbose:
+            print(f"Deleted {len(deleted)} endpoints with for site '{self.site}'.")
         return deleted

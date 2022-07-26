@@ -73,6 +73,7 @@ The ApiGateway class can be created with the following optional parameters:
 | regions           | An array of AWS regions to setup gateways in.        | False       | ip_rotator.DEFAULT_REGIONS
 | access_key_id     | AWS Access Key ID (will override env variables).     | False       | *Relies on env variables.*
 | access_key_secret | AWS Access Key Secret (will override env variables). | False       | *Relies on env variables.*
+| verbose           | Include status and error messages.                   | False       | True
 ```python
 from ip_rotator import ApiGateway, EXTRA_REGIONS, ALL_REGIONS
 
