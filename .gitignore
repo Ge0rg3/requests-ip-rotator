@@ -2,6 +2,7 @@
 # Custom #
 ##########
 .vscode/
+test.py
 
 ##################
 # Auto-generated #
