@@ -72,7 +72,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         # Run original python requests send function
         return super().send(request, stream, timeout, verify, cert, proxies)
 
-    def init_gateway(self, region, force=False):
+    def init_gateway(self, region, force=False, require_manual_deletion=False):
         # Init client
         session = boto3.session.Session()
         awsclient = session.client(
@@ -96,7 +96,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                     raise e
 
             for api in current_apis:
-                if "name" in api and self.api_name == api["name"]:
+                if "name" in api and api["name"].startswith(self.api_name):
                     return {
                         "success": True,
                         "endpoint": f"{api['id']}.execute-api.{region}.amazonaws.com",
@@ -104,8 +104,11 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                     }
 
         # Create simple rest API resource
+        new_api_name = self.api_name
+        if require_manual_deletion:
+            new_api_name += " (Manual Deletion Required)"
         create_api_response = awsclient.create_rest_api(
-            name=self.api_name,
+            name=new_api_name,
             endpointConfiguration={
                 "types": [
                     "REGIONAL",
@@ -265,7 +268,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             api_iter += 1
         return deleted
 
-    def start(self, force=False, endpoints=[]):
+    def start(self, force=False, require_manual_deletion=False, endpoints=[]):
         # If endpoints given already, assign and continue
         if len(endpoints) > 0:
             self.endpoints = endpoints
@@ -282,7 +285,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             futures = []
             # Send each region creation to its own thread
             for region in self.regions:
-                futures.append(executor.submit(self.init_gateway, region=region, force=force))
+                futures.append(executor.submit(self.init_gateway, region=region, force=force, require_manual_deletion=require_manual_deletion))
             # Get thread outputs
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
