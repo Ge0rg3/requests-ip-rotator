@@ -29,7 +29,7 @@ session = requests.Session()
 session.mount("https://site.com", gateway)
 
 # Send request (IP will be randomised)
-response = session.get("https://site.com/index.html")
+response = session.get("https://site.com/index.php", params={"theme": "light"})
 print(response.status_code)
 
 # Delete gateways
@@ -45,7 +45,7 @@ with ApiGateway("https://site.com") as g:
     session = requests.Session()
     session.mount("https://site.com", g)
 
-    response = session.get("https://site.com/index.html")
+    response = session.get("https://site.com/index.php")
     print(response.status_code)
 ```
 
@@ -90,10 +90,11 @@ gateway_2 = ApiGateway("https://www.google.com", regions=EXTRA_REGIONS, access_k
 An ApiGateway object must then be started using the `start` method.  
 **By default, if an ApiGateway already exists for the site, it will use the existing endpoint instead of creating a new one.**  
 This does not require any parameters, but accepts the following:
-| Name              | Description                                                   | Required    |
-| -----------       | -----------                                                   | ----------- |
-| force             | Create a new set of endpoints, even if some already exist.    | False       |
-| endpoints         | Array of pre-existing endpoints (i.e. from previous session). | False       |
+| Name                    | Description                                                           | Required    | Default
+| -----------             | -----------                                                           | ----------- | -----------
+| endpoints               | Array of pre-existing endpoints (i.e. from previous session).         | False       |
+| force                   | Create a new set of endpoints, even if some already exist.            | False       | False
+| require_manual_shutdown | Bool specifying whether Apigateways should persist `shutdown()` calls | False       | False 
 ```python
 # Starts new ApiGateway instances for site, or locates existing endpoints if they already exist.
 gateway_1.start()
@@ -144,6 +145,9 @@ gateway_3 = ApiGateway("http://1.1.1.1:8082", regions=ALL_REGIONS)
 endpoints = gateway_3.start(force=True)
 gateway_3.shutdown(endpoints[:3])
 ```
+
+**Please bear in mind that any gateways started with the `require_manual_shutdown` parameter set to `True` will not be deleted via the `shutdown` method, and must be deleted
+manually through either the AWS CLI or Website.**
 
 ## Credit
 The core gateway creation and organisation code was adapter from RhinoSecurityLabs' [IPRotate Burp Extension](https://github.com/RhinoSecurityLabs/IPRotate_Burp_Extension/).  
