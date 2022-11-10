@@ -94,7 +94,7 @@ This does not require any parameters, but accepts the following:
 | -----------             | -----------                                                           | ----------- | -----------
 | endpoints               | Array of pre-existing endpoints (i.e. from previous session).         | False       |
 | force                   | Create a new set of endpoints, even if some already exist.            | False       | False
-| require_manual_shutdown | Bool specifying whether Apigateways should persist `shutdown()` calls | False       | False 
+| require_manual_deletion | Bool specifying whether Apigateways should persist `shutdown()` calls | False       | False 
 ```python
 # Starts new ApiGateway instances for site, or locates existing endpoints if they already exist.
 gateway_1.start()
@@ -146,7 +146,7 @@ endpoints = gateway_3.start(force=True)
 gateway_3.shutdown(endpoints[:3])
 ```
 
-**Please bear in mind that any gateways started with the `require_manual_shutdown` parameter set to `True` will not be deleted via the `shutdown` method, and must be deleted
+**Please bear in mind that any gateways started with the `require_manual_deletion` parameter set to `True` will not be deleted via the `shutdown` method, and must be deleted
 manually through either the AWS CLI or Website.**
 
 ## Credit
