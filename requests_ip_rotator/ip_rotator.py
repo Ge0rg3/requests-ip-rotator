@@ -32,7 +32,7 @@ ALL_REGIONS = EXTRA_REGIONS + [
 # Inherits from HTTPAdapter so that we can edit each request before sending
 class ApiGateway(rq.adapters.HTTPAdapter):
 
-    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, verbose=True, **kwargs):
+    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, verbose=True, api_name_suffix: str=" - IP Rotate API", **kwargs):
         super().__init__(**kwargs)
         # Set simple params from constructor
         if site.endswith("/"):
@@ -41,7 +41,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             self.site = site
         self.access_key_id = access_key_id
         self.access_key_secret = access_key_secret
-        self.api_name = site + " - IP Rotate API"
+        self.api_name = site + api_name_suffix
         self.regions = regions
         self.verbose = verbose
 
