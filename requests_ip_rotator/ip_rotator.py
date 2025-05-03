@@ -2,7 +2,6 @@ import concurrent.futures
 import ipaddress
 from random import choice, randint
 from time import sleep
-from datetime import datetime
 
 import boto3
 import botocore.exceptions
@@ -33,7 +32,7 @@ ALL_REGIONS = EXTRA_REGIONS + [
 # Inherits from HTTPAdapter so that we can edit each request before sending
 class ApiGateway(rq.adapters.HTTPAdapter):
 
-    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, verbose=True, **kwargs):
+    def __init__(self, site, regions=DEFAULT_REGIONS, access_key_id=None, access_key_secret=None, verbose=True, api_name_suffix: str=" - IP Rotate API", **kwargs):
         super().__init__(**kwargs)
         # Set simple params from constructor
         if site.endswith("/"):
@@ -43,9 +42,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         self.access_key_id = access_key_id
         self.access_key_secret = access_key_secret
 
-        datetime_prefix = datetime.now().strftime('%Y-%m-%d_%H%M.%S')
-        random_prefix = randint(0,99999)
-        self.api_name = site + " - IP Rotate API" + datetime_prefix + "_" + str(random_prefix)
+        self.api_name = site + api_name_suffix
         self.regions = regions
         self.verbose = verbose
 
