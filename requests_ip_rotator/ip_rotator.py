@@ -41,7 +41,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             self.site = site
         self.access_key_id = access_key_id
         self.access_key_secret = access_key_secret
-
         self.api_name = site + api_name_suffix
         self.regions = regions
         self.verbose = verbose
