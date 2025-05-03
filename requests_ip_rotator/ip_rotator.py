@@ -2,6 +2,7 @@ import concurrent.futures
 import ipaddress
 from random import choice, randint
 from time import sleep
+from datetime import datetime
 
 import boto3
 import botocore.exceptions
@@ -41,7 +42,10 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             self.site = site
         self.access_key_id = access_key_id
         self.access_key_secret = access_key_secret
-        self.api_name = site + " - IP Rotate API"
+
+        datetime_prefix = datetime.now().strftime('%Y-%m-%d_%H%M.%S')
+        random_prefix = randint(0,99999)
+        self.api_name = site + " - IP Rotate API" + datetime_prefix + "_" + str(random_prefix)
         self.regions = regions
         self.verbose = verbose
 
