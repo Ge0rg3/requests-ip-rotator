@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES
 
+
 class ApiGateway(rq.adapters.HTTPAdapter):
 
     def __init__(
@@ -54,11 +55,17 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         site_path = site.split("/", 1)[1]
         request.url = "https://" + endpoint + "/ProxyStage/" + site_path
         request.headers["Host"] = endpoint
+
+        # Auto generate random X-Forwarded-For if doesn't exist.
+        # Otherwise AWS forwards true IP address in X-Forwarded-For header
         x_forwarded_for = request.headers.get("X-Forwarded-For")
         if x_forwarded_for is None:
             x_forwarded_for = ipaddress.IPv4Address._string_from_ip_int(
                 randint(0, MAX_IPV4)
             )
+
+        # Move "X-Forwarded-For" to "X-My-X-Forwarded-For". This then gets converted back
+        # within the gateway.
         request.headers.pop("X-Forwarded-For", None)
         request.headers["X-My-X-Forwarded-For"] = x_forwarded_for
         return super().send(request, stream, timeout, verify, cert, proxies)
@@ -71,6 +78,8 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.access_key_secret,
         )
+
+        # If API gateway already exists for host, return pre-existing endpoint
         if not force:
             try:
                 current_apis = ApiGateway.get_gateways(awsclient)
@@ -94,6 +103,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         new_api_name = self.api_name
         if require_manual_deletion:
             new_api_name += " (Manual Deletion Required)"
+
         create_api_response = awsclient.create_rest_api(
             name=new_api_name,
             endpointConfiguration={
@@ -103,19 +113,21 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             },
         )
 
-        get_resource_response = awsclient.get_resources(
-            restApiId=create_api_response["id"]
-        )
         rest_api_id = create_api_response["id"]
 
+        # Get ID for new resource
+        get_resource_response = awsclient.get_resources(restApiId=rest_api_id)
+
+        # Create "Resource" (wildcard proxy path)
         create_resource_response = awsclient.create_resource(
-            restApiId=create_api_response["id"],
+            restApiId=rest_api_id,
             parentId=get_resource_response["items"][0]["id"],
             pathPart="{proxy+}",
         )
 
+        # Allow all methods to new resource
         awsclient.put_method(
-            restApiId=create_api_response["id"],
+            restApiId=rest_api_id,
             resourceId=get_resource_response["items"][0]["id"],
             httpMethod="ANY",
             authorizationType="NONE",
@@ -125,8 +137,9 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             },
         )
 
+        # Make new resource route traffic to new host
         awsclient.put_integration(
-            restApiId=create_api_response["id"],
+            restApiId=rest_api_id,
             resourceId=get_resource_response["items"][0]["id"],
             type="HTTP_PROXY",
             httpMethod="ANY",
@@ -140,7 +153,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         )
 
         awsclient.put_method(
-            restApiId=create_api_response["id"],
+            restApiId=rest_api_id,
             resourceId=create_resource_response["id"],
             httpMethod="ANY",
             authorizationType="NONE",
@@ -151,7 +164,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         )
 
         awsclient.put_integration(
-            restApiId=create_api_response["id"],
+            restApiId=rest_api_id,
             resourceId=create_resource_response["id"],
             type="HTTP_PROXY",
             httpMethod="ANY",
@@ -164,6 +177,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             },
         )
 
+        # Creates deployment resource, so that our API to be callable
         awsclient.create_deployment(restApiId=rest_api_id, stageName="ProxyStage")
 
         return {
@@ -199,15 +213,19 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.access_key_secret,
         )
+        
         endpoint_ids = []
         if endpoints is not None:
             for endpoint in endpoints:
                 endpoint_ids.append(endpoint.split(".")[0])
+
+        # Get all gateway apis (or skip if we don't have permission)
         try:
             apis = ApiGateway.get_gateways(awsclient)
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "UnrecognizedClientException":
                 return 0
+
         api_iter = 0
         deleted = []
         while api_iter < len(apis):
@@ -245,6 +263,8 @@ class ApiGateway(rq.adapters.HTTPAdapter):
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             futures = []
+
+            # Send each region creation to its own thread
             for region in self.regions:
                 futures.append(
                     executor.submit(
@@ -254,6 +274,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                         require_manual_deletion=require_manual_deletion,
                     )
                 )
+
             for future in concurrent.futures.as_completed(futures):
                 result = future.result()
                 if result["success"]:
@@ -271,7 +292,9 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             f"Deleting gateway{'s' if len(self.regions) > 1 else ''} for site '{self.site}'."
         )
         futures = []
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            # Send each region deletion to its own thread
             for region in self.regions:
                 futures.append(
                     executor.submit(
