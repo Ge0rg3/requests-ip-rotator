@@ -4,11 +4,6 @@ from setuptools import setup, find_packages
 location = pathlib.Path(__file__).parent
 README = (location / "README.md").read_text(encoding="utf-8")
 
-requirements_path = location / "requirements.txt"
-if requirements_path.exists():
-    with open(requirements_path, encoding="utf-8") as f:
-        requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-
 setup(
     name="requests-ip-rotator",
     version="1.0.18",
@@ -45,7 +40,7 @@ setup(
     ],
     packages=find_packages(include=["requests_ip_rotator", "requests_ip_rotator.*"]),
     include_package_data=True,
-    install_requires=requirements,
+    install_requires=["boto3", "requests"],
     python_requires=">=3.9",
     keywords=[
         "aws",
