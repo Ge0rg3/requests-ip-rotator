@@ -11,7 +11,7 @@ if requirements_path.exists():
 
 setup(
     name="requests-ip-rotator",
-    version="1.0.17",
+    version="1.0.18",
     description="A Python library to rotate IP addresses using AWS API Gateway",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -50,7 +50,7 @@ setup(
     keywords=[
         "aws",
         "api-gateway",
-        "ip-rotation", 
+        "ip-rotation",
         "proxy",
         "requests",
         "web-scraping",
