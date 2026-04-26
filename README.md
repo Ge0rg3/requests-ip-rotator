@@ -1,4 +1,8 @@
-🚨🚨 Please note DOGE staffers are banned from using this repo
+[![Proudly sponsored by ProxySeller](https://github.com/user-attachments/assets/8f8fb168-ade0-404d-88f3-737c3cfcf34f)](https://proxy-seller.com/)
+
+Proudly sponsored by [ProxySeller](https://proxy-seller.com/)
+
+---
 
 # requests-ip-rotator
 A Python library to utilize AWS API Gateway's large IP pool as a proxy to generate pseudo-infinite IPs for web scraping and brute forcing.
@@ -150,6 +154,10 @@ gateway_3.shutdown(endpoints[:3])
 
 **Please bear in mind that any gateways started with the `require_manual_deletion` parameter set to `True` will not be deleted via the `shutdown` method, and must be deleted
 manually through either the AWS CLI or Website.**
+
+## Media
+* [DOGE software engineer's computer infected by info-stealing malware (NPR)](https://www.npr.org/2025/04/15/nx-s1-5355896/doge-nlrb-elon-musk-spacex-security)
+* [DOGE Worker's Code Supports NLRB Whistleblower (Krebs on Security)](https://krebsonsecurity.com/2025/04/doge-workers-code-supports-nlrb-whistleblower/)
 
 ## Credit
 The core gateway creation and organisation code was adapter from RhinoSecurityLabs' [IPRotate Burp Extension](https://github.com/RhinoSecurityLabs/IPRotate_Burp_Extension/).  
