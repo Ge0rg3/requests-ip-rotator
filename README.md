@@ -62,7 +62,7 @@ If your requests involve data stream, AWS would charge data transfer fee at $0.0
 
 ## Documentation
 ### AWS Authentication
-It is recommended to setup authentication via environment variables. With [awscli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html), you can run `aws configure` to do this, or alternatively, you can simply set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` variables yourself.
+It is recommended to setup authentication via environment variables. With [awscli](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html), you can run `aws configure` to do this, or alternatively, you can simply set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` variables yourself following the steps mentioned in this [thread](https://stackoverflow.com/a/21443349/21208413).
 
 You can find your access key ID and secret by following the [official AWS tutorial](https://docs.aws.amazon.com/powershell/latest/userguide/pstools-appendix-sign-up.html).
 
@@ -72,7 +72,7 @@ The ApiGateway class can be created with the following optional parameters:
 | Name              | Description                                          | Required    | Default
 | -----------       | -----------                                          | ----------- | -----------
 | site              | The site (without path) requests will be sent to.    | True        |
-| regions           | An array of AWS regions to setup gateways in.        | False       | ip_rotator.DEFAULT_REGIONS
+| regions           | An array of [AWS regions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions) to setup gateways in.        | False       | ip_rotator.DEFAULT_REGIONS
 | access_key_id     | AWS Access Key ID (will override env variables).     | False       | *Relies on env variables.*
 | access_key_secret | AWS Access Key Secret (will override env variables). | False       | *Relies on env variables.*
 | verbose           | Include status and error messages.                   | False       | True
