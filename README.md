@@ -1,6 +1,6 @@
-[![Proudly sponsored by ProxySeller](https://github.com/user-attachments/assets/8f8fb168-ade0-404d-88f3-737c3cfcf34f)](https://proxy-seller.com/)
+[![Proudly sponsored by ProxySeller](https://github.com/user-attachments/assets/8f8fb168-ade0-404d-88f3-737c3cfcf34f)](https://proxy-seller.com/?partner=3S6TXUKUTNQBZ9)
 
-Proudly sponsored by [ProxySeller](https://proxy-seller.com/)
+Proudly sponsored by [ProxySeller](https://proxy-seller.com/). Scrape any site, bypass geo-restrictions, track competitor prices and run multiple social accounts using real residential, mobile (4G/5G), ISP and datacenter IPs from 220+ countries.
 
 ---
 
