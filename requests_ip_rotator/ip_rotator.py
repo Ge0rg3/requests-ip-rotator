@@ -9,6 +9,8 @@ import boto3.session
 import requests as rq
 import botocore.exceptions
 
+from .regions import DEFAULT_REGIONS, EXTRA_REGIONS, ALL_REGIONS  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 MAX_IPV4 = ipaddress.IPv4Address._ALL_ONES
@@ -19,9 +21,10 @@ class ApiGateway(rq.adapters.HTTPAdapter):
     def __init__(
         self,
         site: str,
-        regions: List[str],
+        regions: List[str] = DEFAULT_REGIONS,
         access_key_id=None,
         access_key_secret=None,
+        verbose=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -33,6 +36,10 @@ class ApiGateway(rq.adapters.HTTPAdapter):
         self.access_key_secret = access_key_secret
         self.api_name = site + " - IP Rotate API"
         self.regions = regions
+        # `verbose` is accepted for backward compatibility. Configure logging directly
+        # for finer control; True maps to DEBUG, False silences info/warning messages.
+        if verbose is not None:
+            logger.setLevel(logging.DEBUG if verbose else logging.ERROR)
 
     def __enter__(self):
         self.start()
@@ -213,7 +220,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.access_key_secret,
         )
-        
+
         endpoint_ids = []
         if endpoints is not None:
             for endpoint in endpoints:
@@ -224,7 +231,7 @@ class ApiGateway(rq.adapters.HTTPAdapter):
             apis = ApiGateway.get_gateways(awsclient)
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "UnrecognizedClientException":
-                return 0
+                return []
 
         api_iter = 0
         deleted = []
@@ -303,6 +310,6 @@ class ApiGateway(rq.adapters.HTTPAdapter):
                 )
             deleted = []
             for future in concurrent.futures.as_completed(futures):
-                deleted.append(future.result())
+                deleted += future.result()
         logger.info(f"Deleted {len(deleted)} endpoints for site '{self.site}'.")
         return deleted
