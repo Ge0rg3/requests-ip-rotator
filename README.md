@@ -1,9 +1,3 @@
-[![Proudly sponsored by ProxySeller](https://github.com/user-attachments/assets/8f8fb168-ade0-404d-88f3-737c3cfcf34f)](https://proxy-seller.com/)
-
-Proudly sponsored by [ProxySeller](https://proxy-seller.com/)
-
----
-
 # requests-ip-rotator
 A Python library to utilize AWS API Gateway's large IP pool as a proxy to generate pseudo-infinite IPs for web scraping and brute forcing.
 
